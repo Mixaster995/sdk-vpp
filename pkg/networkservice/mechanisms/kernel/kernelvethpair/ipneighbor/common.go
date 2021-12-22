@@ -124,9 +124,6 @@ func addDelKernel(ctx context.Context, isAdd bool, mechanism *kernel.Mechanism, 
 		HardwareAddr: peerLink.Attrs().HardwareAddr,
 	}
 	if isAdd {
-		if err = handle.NeighSet(neigh); err != nil {
-			return errors.WithStack(err)
-		}
 		log.FromContext(ctx).
 			WithField("linkIndex", neigh.LinkIndex).
 			WithField("ip", neigh.IP).
@@ -134,6 +131,11 @@ func addDelKernel(ctx context.Context, isAdd bool, mechanism *kernel.Mechanism, 
 			WithField("hardwareAddr", neigh.HardwareAddr).
 			WithField("duration", time.Since(now)).
 			WithField("netlink", "NeighAdd").Debug("completed")
+
+		if err = handle.NeighSet(neigh); err != nil {
+			log.FromContext(ctx).Errorf("%v", err.Error())
+			return errors.WithStack(err)
+		}
 		return nil
 	}
 	if err = handle.NeighDel(neigh); err != nil {
