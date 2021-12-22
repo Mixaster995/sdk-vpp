@@ -98,9 +98,18 @@ func addDelVPP(ctx context.Context, vppConn api.Connection, isAdd bool, swIfInde
 	}
 	_, err := ip_neighbor.NewServiceClient(vppConn).IPNeighborAddDel(ctx, ipNeighborAddDel)
 	if err != nil {
+		log.FromContext(ctx).
+			WithField("isAdd", isAdd).
+			WithField("swIfIndex", ipNeighborAddDel.Neighbor.SwIfIndex).
+			WithField("flags", ipNeighborAddDel.Neighbor.Flags).
+			WithField("macaddress", ipNeighborAddDel.Neighbor.MacAddress).
+			WithField("ipaddress", ipNeighborAddDel.Neighbor.IPAddress).
+			WithField("duration", time.Since(now)).
+			WithField("vppapi", "IPNeighborAddDel").Errorf("not completed")
 		return errors.WithStack(err)
 	}
 	log.FromContext(ctx).
+		WithField("isAdd", isAdd).
 		WithField("swIfIndex", ipNeighborAddDel.Neighbor.SwIfIndex).
 		WithField("flags", ipNeighborAddDel.Neighbor.Flags).
 		WithField("macaddress", ipNeighborAddDel.Neighbor.MacAddress).
@@ -125,6 +134,21 @@ func addDelKernel(ctx context.Context, isAdd bool, mechanism *kernel.Mechanism, 
 	}
 	if isAdd {
 		log.FromContext(ctx).
+			WithField("isAdd", isAdd).
+			WithField("linkIndex", neigh.LinkIndex).
+			WithField("ip", neigh.IP).
+			WithField("state", neigh.State).
+			WithField("hardwareAddr", neigh.HardwareAddr).
+			WithField("duration", time.Since(now)).
+			WithField("netlink", "NeighAdd").Errorf("not completed")
+
+		if err = handle.NeighSet(neigh); err != nil {
+			log.FromContext(ctx).Errorf("%v", err.Error())
+			return errors.WithStack(err)
+		}
+
+		log.FromContext(ctx).
+			WithField("isAdd", isAdd).
 			WithField("linkIndex", neigh.LinkIndex).
 			WithField("ip", neigh.IP).
 			WithField("state", neigh.State).
@@ -132,16 +156,21 @@ func addDelKernel(ctx context.Context, isAdd bool, mechanism *kernel.Mechanism, 
 			WithField("duration", time.Since(now)).
 			WithField("netlink", "NeighAdd").Debug("completed")
 
-		if err = handle.NeighSet(neigh); err != nil {
-			log.FromContext(ctx).Errorf("%v", err.Error())
-			return errors.WithStack(err)
-		}
 		return nil
 	}
 	if err = handle.NeighDel(neigh); err != nil {
+		log.FromContext(ctx).
+			WithField("isAdd", isAdd).
+			WithField("linkIndex", neigh.LinkIndex).
+			WithField("ip", neigh.IP).
+			WithField("state", neigh.State).
+			WithField("hardwareAddr", neigh.HardwareAddr).
+			WithField("duration", time.Since(now)).
+			WithField("netlink", "NeighDel").Errorf("not completed")
 		return errors.WithStack(err)
 	}
 	log.FromContext(ctx).
+		WithField("isAdd", isAdd).
 		WithField("linkIndex", neigh.LinkIndex).
 		WithField("ip", neigh.IP).
 		WithField("state", neigh.State).
